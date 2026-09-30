@@ -1,4 +1,6 @@
 import { providers } from "../core/providers";
+import { detectProvider } from "../native/provider-runtime";
+import type { ProviderId } from "../core/types";
 
 type Section =
   | "chats"
@@ -219,13 +221,21 @@ export function mountShell(root: HTMLElement): void {
     });
 
     root.querySelectorAll<HTMLButtonElement>(".provider-card").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         const state = button.querySelector(".provider-state");
-        if (!state) return;
+        const id = button.dataset.provider as ProviderId | undefined;
+        if (!state || !id) return;
+
         state.textContent = "Detecting…";
-        window.setTimeout(() => {
-          state.textContent = "Native bridge next";
-        }, 650);
+
+        try {
+          const status = await detectProvider(id);
+          state.textContent = status.installed ? "Detected" : "Not installed";
+          button.title = status.executable ?? status.detail;
+        } catch (error) {
+          state.textContent = "Error";
+          button.title = String(error);
+        }
       });
     });
   };
