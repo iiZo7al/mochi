@@ -187,7 +187,7 @@ fn provider_status_all() -> Vec<ProviderStatus> {
 
 #[cfg(target_os = "windows")]
 fn quote_powershell(value: &str) -> String {
-    format!("'{}'", value.replace(''', "''"))
+    format!("'{}'", value.replace('\'', "''"))
 }
 
 #[cfg(target_os = "windows")]
