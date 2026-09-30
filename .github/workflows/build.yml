@@ -27,10 +27,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: npm install
       - run: npm run build
-      - run: cargo check --manifest-path src-tauri/Cargo.toml
       - name: Generate Mochi installer branding
         shell: powershell
         run: ./scripts/generate-installer-branding.ps1
+      - run: cargo check --manifest-path src-tauri/Cargo.toml
       - name: Build Windows installer
         run: npx tauri build --bundles nsis
       - name: Upload Windows installer
