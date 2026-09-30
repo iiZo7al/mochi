@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -8,6 +9,12 @@ export default defineConfig({
     strictPort: true
   },
   build: {
-    target: "chrome120"
+    target: "chrome120",
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        island: resolve(__dirname, "island.html")
+      }
+    }
   }
 });
