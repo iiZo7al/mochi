@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Mochi",
         "width": 1180,
         "height": 760,
