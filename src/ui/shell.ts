@@ -1,6 +1,7 @@
 import { providers } from "../core/providers";
-import { detectProvider } from "../native/provider-runtime";
 import type { ProviderId } from "../core/types";
+import { detectAllProviders, type NativeProviderStatus } from "../native/provider-runtime";
+import { openProviderDialog } from "./provider-dialog";
 
 type Section =
   | "chats"
@@ -31,7 +32,7 @@ function providerCards(): string {
           <strong>${p.name}</strong>
           <span>${p.description}</span>
         </div>
-        <span class="provider-state">Connect</span>
+        <span class="provider-state">Checking…</span>
       </button>
     `
     )
@@ -164,19 +165,49 @@ function genericView(title: string): string {
   `;
 }
 
+
+function providerStateLabel(status: NativeProviderStatus): string {
+  if (status.authState === "connected") return "Connected";
+  if (status.authState === "ready") return "Ready";
+  if (status.authState === "disconnected") return "Connect";
+  if (status.authState === "missing") return "Install";
+  if (status.authState === "configurable") return "Configure";
+  return status.installed ? "Connect" : "Install";
+}
+
+async function refreshProviderCards(root: HTMLElement): Promise<void> {
+  try {
+    const statuses = await detectAllProviders();
+    for (const status of statuses) {
+      const card = root.querySelector<HTMLButtonElement>(
+        '.provider-card[data-provider="' + status.id + '"]'
+      );
+      if (!card) continue;
+      const badge = card.querySelector<HTMLElement>(".provider-state");
+      if (badge) badge.textContent = providerStateLabel(status);
+      card.dataset.state =
+        status.authState === "connected" || status.authState === "ready"
+          ? "good"
+          : status.authState === "missing"
+            ? "missing"
+            : "idle";
+      card.title = status.executable
+        ? status.detail + "\n" + status.executable
+        : status.detail;
+    }
+  } catch {
+    root.querySelectorAll<HTMLElement>(".provider-state").forEach((badge) => {
+      badge.textContent = "Connect";
+    });
+  }
+}
+
 export function mountShell(root: HTMLElement): void {
   let active: Section = "chats";
 
   const draw = () => {
     root.innerHTML = `
       <div class="app-shell">
-        <div class="island">
-          <div class="island-pulse"></div>
-          <strong>Coder</strong>
-          <span>Ready</span>
-          <button>Open</button>
-        </div>
-
         <aside class="sidebar">
           <div class="brand"><div class="brand-orb">✦</div><span>Mochi</span></div>
           <nav>
@@ -221,23 +252,18 @@ export function mountShell(root: HTMLElement): void {
     });
 
     root.querySelectorAll<HTMLButtonElement>(".provider-card").forEach((button) => {
-      button.addEventListener("click", async () => {
-        const state = button.querySelector(".provider-state");
+      button.addEventListener("click", () => {
         const id = button.dataset.provider as ProviderId | undefined;
-        if (!state || !id) return;
-
-        state.textContent = "Detecting…";
-
-        try {
-          const status = await detectProvider(id);
-          state.textContent = status.installed ? "Detected" : "Not installed";
-          button.title = status.executable ?? status.detail;
-        } catch (error) {
-          state.textContent = "Error";
-          button.title = String(error);
-        }
+        if (!id) return;
+        void openProviderDialog(root, id, () => {
+          if (active === "providers") void refreshProviderCards(root);
+        });
       });
     });
+
+    if (active === "providers") {
+      void refreshProviderCards(root);
+    }
   };
 
   draw();
